@@ -153,11 +153,10 @@ with tab_arquitectura:
             st.write(
                 "Aquí inicia el razonamiento lógico. La capa F6 interpreta el tensor anterior (1x1x120) como un simple vector unidimensional de 120 valores.")
             st.write(
-                "Se reduce a exactamente **84 neuronas**, representando el mapa de bits estandarizado (7x12) de las formas ideales de los caracteres.")
+                "Se reduce a exactamente **84 neuronas**.")
             st.metric("Dimensión Matemática", "Vector 1D (84 neuronas)")
             st.metric("Conexiones Reales", "10,080")
         with col_visual:
-            st.markdown("<h4 style='text-align: center;'>Mapa de Bits Lógico (7x12)</h4>", unsafe_allow_html=True)
             st.markdown(dibujar_tensor(84, 0, 0, tipo="1d", color="#ff7f0e"), unsafe_allow_html=True)
 
     elif "7. Salida" in seleccion:
