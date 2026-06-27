@@ -8,18 +8,16 @@ st.set_page_config(
 )
 
 
-# --- FUNCIÓN VISUALIZADORA DE TENSORES EN 3D ---
-# Esta función dibuja cajas superpuestas para simular las dimensiones de la matriz de datos
+# --- FUNCIÓN VISUALIZADORA DE TENSORES EN 3D Y 1D ---
 def dibujar_tensor(alto, ancho, profundidad, tipo="3d", color="#1f77b4"):
     html = ""
-    escala = 5  # Factor de multiplicación para que se vea bien en pantalla
+    escala = 5  # Factor de multiplicación para la vista 3D
 
     if tipo == "3d":
         h, w = alto * escala, ancho * escala
         desplazamiento_max = profundidad * 3
         html += f'<div style="position:relative; width:{w + desplazamiento_max}px; height:{h + desplazamiento_max}px; margin: 30px auto;">'
 
-        # Dibujar cada "capa" o mapa de características
         for i in range(profundidad):
             offset = i * 3
             opacidad = 0.1 if i < profundidad - 1 else 0.4
@@ -33,11 +31,12 @@ def dibujar_tensor(alto, ancho, profundidad, tipo="3d", color="#1f77b4"):
         html += '</div>'
 
     elif tipo == "1d":
-        # Dibuja un vector (fila de datos aplastada)
-        largo = min(alto, 100) * 4  # Límite visual para no salir de pantalla
+        # Escalado visual dinámico para ver cómo se encogen los vectores
+        # Multiplicamos por 1.5 para que los vectores pequeños se vean, con un límite de 600px de ancho
+        largo = min(alto * 1.5, 600)
         html += f'<div style="margin: 40px auto; display: flex; align-items: center; justify-content: center;">'
-        html += f'<div style="width:{largo}px; height:25px; border: 2px solid {color}; background-color: {color}40;"></div>'
-        html += f'<span style="margin-left: 15px; font-weight: bold; color: #555;">Vector de {alto} neuronas</span>'
+        html += f'<div style="width:{largo}px; height:30px; border: 2px solid {color}; background-color: {color}50; border-radius: 4px;"></div>'
+        html += f'<span style="margin-left: 15px; font-weight: bold; color: #555; font-size: 1.1em;">Vector de {alto} neuronas</span>'
         html += '</div>'
 
     return html
@@ -50,7 +49,7 @@ st.markdown(
     "Simulador visual: Transición de la extracción heurística a la representación matemática automática (End-to-End).")
 st.divider()
 
-# 3. ORGANIZACIÓN EN PESTAÑAS (Solo las teóricas y visuales)
+# 3. ORGANIZACIÓN EN PESTAÑAS
 tab_arquitectura, tab_eficiencia = st.tabs([
     "Simulador: Flujo de Tensores 3D",
     "Justificación de Eficiencia"
@@ -62,7 +61,7 @@ with tab_arquitectura:
     st.markdown(
         "Seleccione una fase matemática para observar cómo la red altera la topología de los datos (Resolución vs. Profundidad).")
 
-    # Menú interactivo paso a paso
+    # Menú interactivo paso a paso (Actualizado con C5 y F6 separados)
     capas_lenet = [
         "0. Entrada (Input)",
         "1. C1 - Capa Convolucional",
@@ -70,13 +69,14 @@ with tab_arquitectura:
         "3. C3 - Convolución Profunda",
         "4. S4 - Submuestreo Final",
         "5. Aplanamiento (Flatten)",
-        "6. C5 / F6 - Red Neuronal Densa",
-        "7. Salida (Clasificador RBF)"
+        "6. C5 - Capa Densa (120 neuronas)",
+        "7. F6 - Capa Densa (84 neuronas)",
+        "8. Salida (Clasificador RBF)"
     ]
 
     seleccion = st.selectbox("Seleccione la fase de procesamiento:", capas_lenet)
 
-    # Columnas para Teoría y Visualización 3D
+    # Columnas para Teoría y Visualización
     col_teoria, col_visual = st.columns([1, 1])
 
     if "0. Entrada" in seleccion:
@@ -94,9 +94,8 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("C1: Extracción de Características Locales")
             st.write(
-                "Aplicación de **Campos Receptivos Locales**. La dimensión espacial se reduce (de 32 a 28), pero la profundidad aumenta al aplicar 6 filtros distintos.")
+                "Aplicación de **Campos Receptivos Locales**. La dimensión espacial se reduce, pero la profundidad aumenta al aplicar 6 filtros distintos.")
             st.metric("Dimensión Matemática", "28 x 28 x 6")
-            st.metric("Parámetros Entrenables", "156")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Resolución decrece, Profundidad crece</h4>",
                         unsafe_allow_html=True)
@@ -106,7 +105,7 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("S2: Invariancia Espacial")
             st.write(
-                "Aplicación de **Submuestreo (Average Pooling)**. La resolución se reduce exactamente a la mitad (promediando bloques de 2x2). Los mapas mantienen su profundidad.")
+                "Aplicación de **Submuestreo (Average Pooling)**. La resolución se reduce a la mitad (promediando bloques de 2x2).")
             st.metric("Dimensión Matemática", "14 x 14 x 6")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>El tensor se comprime a la mitad</h4>", unsafe_allow_html=True)
@@ -116,7 +115,7 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("C3: Combinación de Rasgos")
             st.write(
-                "Se aplican 16 nuevos filtros combinando los mapas anteriores. Los bordes simples se cruzan para formar figuras cerradas.")
+                "Se aplican 16 filtros asimétricos sobre los mapas anteriores. Los bordes simples se cruzan para formar figuras geométricas complejas.")
             st.metric("Dimensión Matemática", "10 x 10 x 16")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Mayor abstracción, más profundidad</h4>",
@@ -127,7 +126,7 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("S4: Abstracción Visual Final")
             st.write(
-                "Última capa de topología espacial. Se vuelve a encoger la imagen a la mitad. Quedan matrices minúsculas pero con un altísimo nivel de información abstracta.")
+                "Última capa topológica. Quedan matrices minúsculas pero con un nivel altísimo de información lógica y visual.")
             st.metric("Dimensión Matemática", "5 x 5 x 16")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Esencia visual pura</h4>", unsafe_allow_html=True)
@@ -137,32 +136,45 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("Transición Topológica (Flatten)")
             st.write(
-                "Se abandona el espacio 3D. Las matrices bidimensionales (16 mapas de 5x5) se 'aplastan' matemáticamente en un vector lineal.")
+                "Se abandona el espacio bidimensional. Las matrices (16 mapas de 5x5) se multiplican y 'aplastan' matemáticamente en un vector lineal (16 * 5 * 5 = 400).")
             st.metric("Dimensión Matemática", "Vector 1D (400 neuronas)")
+            st.success("Destruye la geometría de la imagen para iniciar el razonamiento lógico.")
         with col_visual:
-            st.markdown("<h4 style='text-align: center;'>Colapso de las dimensiones</h4>", unsafe_allow_html=True)
-            st.markdown(dibujar_tensor(400, 0, 0, tipo="1d", color="#ff7f0e"), unsafe_allow_html=True)
+            st.markdown("<h4 style='text-align: center;'>Colapso de las dimensiones a 1D</h4>", unsafe_allow_html=True)
+            st.markdown(dibujar_tensor(400, 0, 0, tipo="1d", color="#8c564b"), unsafe_allow_html=True)
 
-    elif "6. C5 / F6" in seleccion:
+    elif "6. C5" in seleccion:
         with col_teoria:
-            st.subheader("Red Neuronal de Clasificación")
+            st.subheader("C5: Reducción Analítica")
             st.write(
-                "El vector de 400 neuronas pasa por las capas de razonamiento lógico. Primero se reduce a 120, y luego a 84 (representando un mapa de bits lógico).")
-            st.metric("Dimensión Matemática", "Vector 1D (84 neuronas)")
-            st.metric("Parámetros Combinados", "58,244")
+                "En el paper, LeCun la llama capa convolucional, pero al aplicar filtros de 5x5 sobre mapas de 5x5, actúa matemáticamente idéntica a una **Capa Densa (Fully Connected)**.")
+            st.write("El vector de 400 valores de entrada se procesa y comprime en 120 salidas.")
+            st.metric("Dimensión Matemática", "Vector 1D (120 neuronas)")
+            st.metric("Conexiones Reales", "48,000")
         with col_visual:
-            st.markdown("<h4 style='text-align: center;'>Razonamiento Lógico</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='text-align: center;'>Compresión del Vector Lógico</h4>", unsafe_allow_html=True)
+            st.markdown(dibujar_tensor(120, 0, 0, tipo="1d", color="#ff7f0e"), unsafe_allow_html=True)
+
+    elif "7. F6" in seleccion:
+        with col_teoria:
+            st.subheader("F6: Abstracción de Caracteres")
+            st.write(
+                "Red densa tradicional. Se reduce el vector a exactamente **84 neuronas**. Este número fue elegido porque representa el mapa de bits estandarizado (7x12) de las formas ideales de los números estilizados.")
+            st.metric("Dimensión Matemática", "Vector 1D (84 neuronas)")
+            st.metric("Conexiones Reales", "10,080")
+        with col_visual:
+            st.markdown("<h4 style='text-align: center;'>Mapa de Bits Lógico (7x12)</h4>", unsafe_allow_html=True)
             st.markdown(dibujar_tensor(84, 0, 0, tipo="1d", color="#ff7f0e"), unsafe_allow_html=True)
 
-    elif "7. Salida" in seleccion:
+    elif "8. Salida" in seleccion:
         with col_teoria:
-            st.subheader("Decisión Euclidiana")
+            st.subheader("Decisión Euclidiana (Capa RBF)")
             st.write(
-                "La red emite 10 valores, calculando la distancia euclidiana frente a plantillas ideales (RBF). El valor más bajo dicta qué dígito se identificó.")
+                "El vector saliente de 84 se compara contra 10 plantillas ideales. Se calcula la distancia Euclidiana, y el valor más bajo dicta qué dígito se identificó.")
             st.metric("Dimensión Matemática", "Vector 1D (10 neuronas)")
-            st.metric("Predicción", "Dígitos del 0 al 9")
+            st.metric("Clases de Salida", "Dígitos del 0 al 9")
         with col_visual:
-            st.markdown("<h4 style='text-align: center;'>Salida Final</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='text-align: center;'>Decisión Final</h4>", unsafe_allow_html=True)
             st.markdown(dibujar_tensor(10, 0, 0, tipo="1d", color="#d62728"), unsafe_allow_html=True)
 
 # --- PESTAÑA 2: EFICIENCIA PARAMÉTRICA ---
@@ -175,15 +187,13 @@ with tab_eficiencia:
     with col_a:
         st.subheader("LeNet-5 (Pesos Compartidos)")
         st.write(
-            "Al obligar a la red a utilizar el mismo filtro (kernel) para recorrer toda la imagen, se evita la necesidad de asignar un peso individual a cada píxel, logrando invariancia espacial.")
+            "Al obligar a la red a utilizar el mismo filtro para recorrer toda la imagen, se evita la necesidad de asignar un peso individual a cada píxel, logrando invariancia espacial.")
         st.metric("Total de Parámetros", "~61,706")
-        st.success(
-            "✅ Eficiente computacionalmente, previene el sobreajuste y generaliza formas geométricas independientemente de su posición.")
+        st.success("✅ Eficiente computacionalmente, previene el sobreajuste y generaliza formas geométricas.")
 
     with col_b:
         st.subheader("Red Tradicional (Fully Connected)")
         st.write(
-            "Si se conectara la imagen de 32x32 píxeles directamente a una red densa con capacidades de aprendizaje equivalentes, la explosión combinatoria arruinaría el proceso.")
+            "Si se conectara la imagen de 32x32 píxeles directamente a una red densa con capacidades equivalentes, la explosión combinatoria arruinaría el proceso matemático.")
         st.metric("Total de Parámetros Estimados", "> 1,200,000")
-        st.error(
-            "❌ Memoriza los datos ciegamente (Overfitting), requiere demasiada memoria y falla ante la mínima rotación o traslado del dígito.")
+        st.error("❌ Memoriza los datos ciegamente (Overfitting) y falla ante la mínima rotación o traslado del dígito.")
