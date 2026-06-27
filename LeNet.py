@@ -16,23 +16,25 @@ def dibujar_tensor(alto, ancho, profundidad, tipo="3d", color="#1f77b4"):
     if tipo == "3d":
         h, w = alto * escala, ancho * escala
         desplazamiento_max = profundidad * 3
-        html += f'<div style="position:relative; width:{w + desplazamiento_max}px; height:{h + desplazamiento_max}px; margin: 30px auto;">'
+
+        # Ajuste de margen para centrar bien el gráfico dependiendo de la profundidad
+        margen_superior = 50 if profundidad > 50 else 30
+        html += f'<div style="position:relative; width:{w + desplazamiento_max}px; height:{h + desplazamiento_max}px; margin: {margen_superior}px auto;">'
 
         for i in range(profundidad):
             offset = i * 3
-            opacidad = 0.1 if i < profundidad - 1 else 0.4
+            # Hacemos que las capas profundas se vean bien sin saturar el color
+            opacidad = 0.1 if i < profundidad - 1 else 0.8
             html += f'''
             <div style="position:absolute; top:{offset}px; left:{offset}px; 
                         width:{w}px; height:{h}px; 
-                        border: 1.5px solid {color}; 
+                        border: 1px solid {color}; 
                         background-color: {color}{int(opacidad * 255):02x}; 
-                        box-shadow: -1px -1px 3px rgba(0,0,0,0.1);">
+                        box-shadow: -1px -1px 2px rgba(0,0,0,0.2);">
             </div>'''
         html += '</div>'
 
     elif tipo == "1d":
-        # Escalado visual dinámico para ver cómo se encogen los vectores
-        # Multiplicamos por 1.5 para que los vectores pequeños se vean, con un límite de 600px de ancho
         largo = min(alto * 1.5, 600)
         html += f'<div style="margin: 40px auto; display: flex; align-items: center; justify-content: center;">'
         html += f'<div style="width:{largo}px; height:30px; border: 2px solid {color}; background-color: {color}50; border-radius: 4px;"></div>'
@@ -45,8 +47,7 @@ def dibujar_tensor(alto, ancho, profundidad, tipo="3d", color="#1f77b4"):
 # 2. ENCABEZADO ACADÉMICO
 st.title("Análisis Estructural de LeNet-5")
 st.markdown("**Basado en: *Gradient-Based Learning Applied to Document Recognition* (LeCun et al., 1998)**")
-st.markdown(
-    "Simulador visual: Transición de la extracción heurística a la representación matemática automática (End-to-End).")
+st.markdown("Simulador visual: Representación matemática purista de la arquitectura convolucional original.")
 st.divider()
 
 # 3. ORGANIZACIÓN EN PESTAÑAS
@@ -61,17 +62,16 @@ with tab_arquitectura:
     st.markdown(
         "Seleccione una fase matemática para observar cómo la red altera la topología de los datos (Resolución vs. Profundidad).")
 
-    # Menú interactivo paso a paso (Actualizado con C5 y F6 separados)
+    # Menú interactivo paso a paso (SIN APLANAMIENTO, 100% fiel al paper)
     capas_lenet = [
         "0. Entrada (Input)",
         "1. C1 - Capa Convolucional",
         "2. S2 - Submuestreo (Pooling)",
         "3. C3 - Convolución Profunda",
         "4. S4 - Submuestreo Final",
-        "5. Aplanamiento (Flatten)",
-        "6. C5 - Capa Densa (120 neuronas)",
-        "7. F6 - Capa Densa (84 neuronas)",
-        "8. Salida (Clasificador RBF)"
+        "5. C5 - Convolución de Colapso (1x1)",
+        "6. F6 - Red Neuronal Densa",
+        "7. Salida (Clasificador RBF)"
     ]
 
     seleccion = st.selectbox("Seleccione la fase de procesamiento:", capas_lenet)
@@ -94,7 +94,7 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("C1: Extracción de Características Locales")
             st.write(
-                "Aplicación de **Campos Receptivos Locales**. La dimensión espacial se reduce, pero la profundidad aumenta al aplicar 6 filtros distintos.")
+                "Aplicación de **Campos Receptivos Locales**. La dimensión espacial se reduce (de 32 a 28), pero la profundidad aumenta al aplicar 6 filtros distintos.")
             st.metric("Dimensión Matemática", "28 x 28 x 6")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Resolución decrece, Profundidad crece</h4>",
@@ -115,7 +115,7 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("C3: Combinación de Rasgos")
             st.write(
-                "Se aplican 16 filtros asimétricos sobre los mapas anteriores. Los bordes simples se cruzan para formar figuras geométricas complejas.")
+                "Se aplican 16 filtros asimétricos sobre los mapas anteriores. Los bordes simples se cruzan para formar figuras complejas.")
             st.metric("Dimensión Matemática", "10 x 10 x 16")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Mayor abstracción, más profundidad</h4>",
@@ -126,47 +126,41 @@ with tab_arquitectura:
         with col_teoria:
             st.subheader("S4: Abstracción Visual Final")
             st.write(
-                "Última capa topológica. Quedan matrices minúsculas pero con un nivel altísimo de información lógica y visual.")
+                "Última capa topológica pura. Quedan matrices minúsculas pero con un nivel altísimo de información lógica y visual.")
             st.metric("Dimensión Matemática", "5 x 5 x 16")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Esencia visual pura</h4>", unsafe_allow_html=True)
             st.markdown(dibujar_tensor(5, 5, 16, color="#2ca02c"), unsafe_allow_html=True)
 
-    elif "5. Aplanamiento" in seleccion:
+    elif "5. C5" in seleccion:
         with col_teoria:
-            st.subheader("Transición Topológica (Flatten)")
+            st.subheader("C5: Convolución de Colapso Espacial")
             st.write(
-                "Se abandona el espacio bidimensional. Las matrices (16 mapas de 5x5) se multiplican y 'aplastan' matemáticamente en un vector lineal (16 * 5 * 5 = 400).")
-            st.metric("Dimensión Matemática", "Vector 1D (400 neuronas)")
-            st.success("Destruye la geometría de la imagen para iniciar el razonamiento lógico.")
-        with col_visual:
-            st.markdown("<h4 style='text-align: center;'>Colapso de las dimensiones a 1D</h4>", unsafe_allow_html=True)
-            st.markdown(dibujar_tensor(400, 0, 0, tipo="1d", color="#8c564b"), unsafe_allow_html=True)
-
-    elif "6. C5" in seleccion:
-        with col_teoria:
-            st.subheader("C5: Reducción Analítica")
+                "¡Este es el secreto matemático de 1998! En lugar de 'aplanar' los datos, LeCun aplicó **120 filtros de tamaño 5x5** sobre los 16 mapas que ya medían 5x5.")
             st.write(
-                "En el paper, LeCun la llama capa convolucional, pero al aplicar filtros de 5x5 sobre mapas de 5x5, actúa matemáticamente idéntica a una **Capa Densa (Fully Connected)**.")
-            st.write("El vector de 400 valores de entrada se procesa y comprime en 120 salidas.")
-            st.metric("Dimensión Matemática", "Vector 1D (120 neuronas)")
+                "Al aplicar un filtro del mismo tamaño que la imagen, el espacio colapsa en un solo punto (1x1). El resultado son 120 puntos individuales. **La propia convolución destruyó el espacio 2D sin necesidad de aplanar.**")
+            st.metric("Dimensión Matemática", "1 x 1 x 120 (Tensor)")
             st.metric("Conexiones Reales", "48,000")
         with col_visual:
-            st.markdown("<h4 style='text-align: center;'>Compresión del Vector Lógico</h4>", unsafe_allow_html=True)
-            st.markdown(dibujar_tensor(120, 0, 0, tipo="1d", color="#ff7f0e"), unsafe_allow_html=True)
+            st.markdown("<h4 style='text-align: center;'>Colapso a 1x1 (Máxima Profundidad)</h4>",
+                        unsafe_allow_html=True)
+            # Aquí la magia: Dibujamos un tensor de 1x1 pero con 120 de profundidad
+            st.markdown(dibujar_tensor(1, 1, 120, color="#8c564b"), unsafe_allow_html=True)
 
-    elif "7. F6" in seleccion:
+    elif "6. F6" in seleccion:
         with col_teoria:
-            st.subheader("F6: Abstracción de Caracteres")
+            st.subheader("F6: Red Neuronal Densa Clásica")
             st.write(
-                "Red densa tradicional. Se reduce el vector a exactamente **84 neuronas**. Este número fue elegido porque representa el mapa de bits estandarizado (7x12) de las formas ideales de los números estilizados.")
+                "Aquí inicia el razonamiento lógico. La capa F6 interpreta el tensor anterior (1x1x120) como un simple vector unidimensional de 120 valores.")
+            st.write(
+                "Se reduce a exactamente **84 neuronas**, representando el mapa de bits estandarizado (7x12) de las formas ideales de los caracteres.")
             st.metric("Dimensión Matemática", "Vector 1D (84 neuronas)")
             st.metric("Conexiones Reales", "10,080")
         with col_visual:
             st.markdown("<h4 style='text-align: center;'>Mapa de Bits Lógico (7x12)</h4>", unsafe_allow_html=True)
             st.markdown(dibujar_tensor(84, 0, 0, tipo="1d", color="#ff7f0e"), unsafe_allow_html=True)
 
-    elif "8. Salida" in seleccion:
+    elif "7. Salida" in seleccion:
         with col_teoria:
             st.subheader("Decisión Euclidiana (Capa RBF)")
             st.write(
